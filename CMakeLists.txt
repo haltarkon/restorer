@@ -37,6 +37,10 @@ llvm_map_components_to_libnames(
   DebugInfoPDB
 )
 
+IF(MSVC)
+  SET_TARGET_PROPERTIES(${projectname} PROPERTIES COMPILE_FLAGS "/EHsc")
+ENDIF(MSVC)
+
 # Link against LLVM libraries
 target_link_libraries(${projectname} PRIVATE ${llvm_libs})
 #######################

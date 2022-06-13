@@ -1656,8 +1656,10 @@ bool restorer::SymbolsTree::parse_COFF_vftables(Module* mod)
   return true;
 }
 
+#ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-variable"
+#endif
 bool restorer::SymbolsTree::collect()
 {
   for (const auto & input : inputs)
@@ -1722,7 +1724,9 @@ bool restorer::SymbolsTree::collect()
 
   return false;
 }
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif
 
 bool restorer::SymbolsTree::process()
 {
