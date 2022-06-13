@@ -21,8 +21,15 @@
 #include <llvm/Support/Casting.h>
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/WithColor.h>
-//#include <llvm/Support/TargetRegistry.h>
+
+// TODO: Is it about system or LLVM version?
+#ifdef __linux__ 
 #include <llvm/MC/TargetRegistry.h>
+#elif _WIN32
+#include <llvm/Support/TargetRegistry.h>
+#else
+
+#endif
 
 #include <llvm/Demangle/MicrosoftDemangle.h>
 #include <llvm/Demangle/MicrosoftDemangleNodes.h>
