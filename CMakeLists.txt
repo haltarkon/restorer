@@ -6,8 +6,16 @@ cmake_minimum_required (VERSION 3.8)
 set(projectname "restorer")
 project (${projectname})
 
+set(SOURCES 
+  src/main.cpp
+  src/restorer.h
+  src/restorer.cpp
+  src/rtti.h
+  src/rtti.cpp
+)
+
 # Add source to this project's executable.
-add_executable (restorer "main.cpp" "restorer.cpp" "restorer.h" "rtti.cpp" "rtti.h")
+add_executable (${projectname} ${SOURCES})
 
 target_compile_features(${projectname} PRIVATE cxx_std_17)
 
