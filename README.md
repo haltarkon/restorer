@@ -48,3 +48,8 @@ It is possible to restore the inheritance hierarchy if the library you are using
 Thanks for [GrandpaGameHacker](https://github.com/GrandpaGameHacker):
 + [ClassDumper](https://github.com/GrandpaGameHacker/ClassDumper)
 + [ClassDumper2](https://github.com/GrandpaGameHacker/ClassDumper2)
+
+LLVM utils:
++ [llvm-pdbutil](https://llvm.org/docs/CommandGuide/llvm-pdbutil.html)
++ [llvm-readobj](https://llvm.org/docs/CommandGuide/llvm-readobj.html)
++ [llvm-objdump](https://llvm.org/docs/CommandGuide/llvm-objdump.html)
