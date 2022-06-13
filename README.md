@@ -15,6 +15,7 @@ It easy to get current options with help:
     USAGE: restorer.exe [options] <input object files>
 
     OPTIONS:
+    --recursive            Collect all binary files recursively
     --input-folder=path    Input folder path
     --pdb-folder=path      Pdb folder path
     --output-folder=path   Output folder path

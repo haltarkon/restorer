@@ -16,6 +16,7 @@ void print_help()
   std::cout << "OVERVIEW: Class header dumper" << std::endl << std::endl;
   std::cout << "USAGE: restorer.exe [options] <input object files>" << std::endl << std::endl;
   std::cout << "OPTIONS:" << std::endl;
+  std::cout << "  --recursive            Collect all binary files recursively" << std::endl;
   std::cout << "  --input-folder=path    Input folder path" << std::endl;
   std::cout << "  --pdb-folder=path      Pdb folder path" << std::endl;
   std::cout << "  --output-folder=path   Output folder path" << std::endl;
@@ -29,6 +30,7 @@ int main(int argc, const char* argv[])
   restorer::SymbolsTree tree;
 
   // Simple parameters parsing
+  // TODO: Use some library for command line apps
   std::filesystem::path OutputFolder = "./restorer";
   std::filesystem::path InputFolder = "";
   std::filesystem::path PDBFolder = "";
@@ -62,6 +64,7 @@ int main(int argc, const char* argv[])
     }
     else
     {
+      // TODO: Add some way to specify pdb file from command line
       tree.inputs.push_back({ arg });
     }
   }
