@@ -25,6 +25,8 @@ You can pass a list of dlls or a directory path (for recursive traversal) to the
 
     $ ./restorer.exe libA.dll libB.dll
 
+You can find here example folder with [example.h header file](example/example.h). After restoration we get something like in [example_restored.h](example/example_restored.h).
+
 ## How it works
 
 + A lot of information can be obtained from [decorated names](https://en.wikiversity.org/wiki/Visual_C++_name_mangling). 
