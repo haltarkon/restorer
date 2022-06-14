@@ -50,6 +50,9 @@ using namespace llvm;
 // TODO: Move to application options
 constexpr bool gInsertIncludeBefore = false;
 constexpr bool gInsertIncludeInside = false;
+constexpr bool gEnableFunctions = true;
+constexpr bool gEnableVariables = true;
+constexpr bool gOutputSymbolLocation = false;
 constexpr uint32_t gIndentSize = 2;
 constexpr char gIndentChar = ' ';
 const char* gDefaultNonUnionClassType = "class/*or struct*/";
@@ -831,74 +834,89 @@ bool restorer::Container::output_definition(std::ofstream& out, size_t indent) c
 
     if (!functions.empty())
     {
-      out << "#if 0" << std::endl;
+      if (!gEnableFunctions)
+        out << "#if 0" << std::endl;
       out << ind(indent) << "// Functions:" << std::endl;
       for (const auto& function : functions)
       {
         function.second.output_definition(out, indent);
-        out << "; // ";
-        bool first = true;
-        for (const auto& occurrence : function.second.occurrences)
+        if (gOutputSymbolLocation)
         {
-          if (!occurrence.modulePtr || !occurrence.owner)
-            continue;
+          out << "; // ";
+          bool first = true;
+          for (const auto& occurrence : function.second.occurrences)
+          {
+            if (!occurrence.modulePtr || !occurrence.owner)
+              continue;
 
-          out << (first ? "" : ",") << occurrence.modulePtr->name << ":" << (void*)occurrence.address;
+            out << (first ? "" : ",") << occurrence.modulePtr->name << ":" << (void*)occurrence.address;
 
-          if (first)
-            first = false;
+            if (first)
+              first = false;
+          }
         }
         out << std::endl;
       }
-      out << "#endif" << std::endl << std::endl;
+      if (!gEnableFunctions)
+        out << "#endif" << std::endl << std::endl;
     }
 
     if (!functionsStatic.empty())
     {
-      out << "#if 0" << std::endl;
+      if (!gEnableFunctions)
+        out << "#if 0" << std::endl;
       out << ind(indent) << "// Static functions:" << std::endl;
       for (const auto& function : functionsStatic)
       {
         function.second.output_definition(out, indent);
-        out << "; // ";
-        bool first = true;
-        for (const auto& occurrence : function.second.occurrences)
+        if (gOutputSymbolLocation)
         {
-          if (!occurrence.modulePtr || !occurrence.owner)
-            continue;
+          out << "; // ";
+          bool first = true;
+          for (const auto& occurrence : function.second.occurrences)
+          {
+            if (!occurrence.modulePtr || !occurrence.owner)
+              continue;
 
-          out << (first ? "" : ",") << occurrence.modulePtr->name << ":" << (void*)occurrence.address;
+            out << (first ? "" : ",") << occurrence.modulePtr->name << ":" << (void*)occurrence.address;
 
-          if (first)
-            first = false;
+            if (first)
+              first = false;
+          }
         }
         out << std::endl;
       }
-      out << "#endif" << std::endl << std::endl;
+      if (!gEnableFunctions)
+        out << "#endif" << std::endl << std::endl;
     }
 
     if (!variableSymbols.empty())
     {
-      out << "#if 0" << std::endl;
+      if (!gEnableVariables)
+        out << "#if 0" << std::endl;
       out << ind(indent) << "// Variables:" << std::endl;
       for (const auto& variable : variableSymbols)
       {
         variable.second.output_definition(out, indent);
-        out << "; // ";
-        bool first = true;
-        for (const auto& occurrence : variable.second.occurrences)
+        if (gOutputSymbolLocation)
         {
-          if (!occurrence.modulePtr || !occurrence.owner)
-            continue;
+          out << "; // ";
+          bool first = true;
+          for (const auto& occurrence : variable.second.occurrences)
+          {
+            if (!occurrence.modulePtr || !occurrence.owner)
+              continue;
 
-          out << (first ? "" : ",") << occurrence.modulePtr->name << ":" << (void*)occurrence.address;
+            out << (first ? "" : ",") << occurrence.modulePtr->name << ":" << (void*)occurrence.address;
 
-          if (first)
-            first = false;
+            if (first)
+              first = false;
+          }
         }
         out << std::endl;
       }
-      out << "#endif" << std::endl << std::endl;
+      if (!gEnableVariables)
+        out << "#endif" << std::endl << std::endl;
     }
 
     if (!functionsVirtual.empty())
@@ -907,17 +925,20 @@ bool restorer::Container::output_definition(std::ofstream& out, size_t indent) c
       for (const auto& function : functionsVirtual)
       {
         function.second.output_definition(out, indent);
-        out << "; // ";
-        bool first = true;
-        for (const auto& occurrence : function.second.occurrences)
+        if (gOutputSymbolLocation)
         {
-          if (!occurrence.modulePtr || !occurrence.owner)
-            continue;
+          out << "; // ";
+          bool first = true;
+          for (const auto& occurrence : function.second.occurrences)
+          {
+            if (!occurrence.modulePtr || !occurrence.owner)
+              continue;
 
-          out << (first ? "" : ",") << occurrence.modulePtr->name << ":" << (void*)occurrence.address;
+            out << (first ? "" : ",") << occurrence.modulePtr->name << ":" << (void*)occurrence.address;
 
-          if (first)
-            first = false;
+            if (first)
+              first = false;
+          }
         }
         out << std::endl;
       }
