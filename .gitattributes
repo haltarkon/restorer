@@ -1,0 +1,10 @@
+
+* text=auto eol=lf
+
+# Following pattern are text & have to be normalized
+
+*.h             text
+*.cpp           text
+*.txt           text
+*.md            text
+*.json          text
