@@ -6,11 +6,6 @@
 
 #include "restorer.h"
 
-namespace opts
-{
-  std::string OutputFolder;
-}
-
 void print_help()
 {
   std::cout << "OVERVIEW: Class header dumper" << std::endl << std::endl;

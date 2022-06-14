@@ -109,7 +109,7 @@ namespace restorer
     {
       tUnknown,
       tNamespace,
-      tOOP,
+      tNonUnionClass,
       tClass,
       tStruct,
       tUnion,
@@ -140,8 +140,8 @@ namespace restorer
     FieldsData data;
 
     const char* get_type_str() const;
-    bool is_class_or_struct() const;
-    void force_oop();
+    bool is_non_union_class() const;
+    void force_non_union_class();
 
     bool process_step_0(Container& root);
     bool process_step_1(Container& root);

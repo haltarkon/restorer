@@ -43,38 +43,24 @@
 
 using namespace llvm;
 
+
+// TODO: Commit patch to LLVM?
 //#define LLVM_RealEnumType_DEFINED
-//#define RESTORER_INSERT_INCLUDES
 
-static void error(Twine Msg) {
-  // Flush the standard output to print the error at a
-  // proper place.
-  fouts().flush();
-  errs() << "\n";
+// TODO: Move to application options
+constexpr bool gInsertIncludeBefore = false;
+constexpr bool gInsertIncludeInside = false;
+constexpr uint32_t gIndentSize = 2;
+constexpr char gIndentChar = ' ';
+const char* gDefaultNonUnionClassType = "class/*or struct*/";
 
-  static const StringRef ToolName("restorer");
-
-  WithColor::error(errs(), ToolName) << Msg << "\n";
-  exit(1);
-}
-
-void reportError(Error Err, StringRef Input) {
-  assert(Err);
-  if (Input == "-")
-    Input = "<stdin>";
-  handleAllErrors(createFileError(Input, std::move(Err)),
-    [&](const ErrorInfoBase& EI) { error(EI.message()); });
-  llvm_unreachable("error() call should never return");
-}
-
-inline std::string ind(size_t indent, const char c = ' ')
+// Inserts indents in front of code lines
+inline auto ind(size_t depth, const char c = gIndentChar) -> std::string
 {
-  return std::string(2 * indent, ' ');
+  return std::string(gIndentSize * depth, c);
 }
 
-/*
- * Erase all Occurrences of given substring from main string.
- */
+// Erases all Occurrences of given substring from main string.
 void eraseAllSubStr(std::string& mainStr, const std::string& toErase)
 {
   size_t pos;
@@ -86,11 +72,11 @@ void eraseAllSubStr(std::string& mainStr, const std::string& toErase)
   }
 }
 
-restorer::Container* get_container(restorer::Container* root, const ms_demangle::QualifiedNameNode* nameNode, bool full = false);
-
-inline const char* to_text(ms_demangle::PrimitiveKind kind)
+// Gets string for PrimitiveKind. For RealEnumType
+inline const char* toString(ms_demangle::PrimitiveKind kind)
 {
-  switch (kind) {
+  switch (kind)
+  {
   case ms_demangle::PrimitiveKind::Void: return "void";
   case ms_demangle::PrimitiveKind::Bool: return "bool";
   case ms_demangle::PrimitiveKind::Char: return "char";
@@ -118,12 +104,31 @@ inline const char* to_text(ms_demangle::PrimitiveKind kind)
   return "";
 }
 
-bool process_node(ms_demangle::Node* node, restorer::Container* root, const std::string& name = "", restorer::Module* mod = nullptr, uint32_t rva = 0, bool owner = false)
+// Collects useful information from the node depending on the type.
+bool process_node(
+  ms_demangle::Node* node,
+  restorer::Container* root,
+  const std::string& name = "",
+  restorer::Module* mod = nullptr,
+  uint32_t rva = 0,
+  bool owner = false);
+
+// Finds or creates a container based on the full qualified name.
+restorer::Container* get_container(
+  restorer::Container* root,
+  const ms_demangle::QualifiedNameNode* nameNode,
+  bool full = false);
+
+bool process_node(
+  ms_demangle::Node* node,
+  restorer::Container* root,
+  const std::string& name,
+  restorer::Module* mod,
+  uint32_t rva,
+  bool owner)
 {
   if (node == nullptr)
-  {
     return false;
-  }
 
   const std::string str = node->toString(ms_demangle::OF_NoCallingConvention); // debug
 
@@ -192,7 +197,7 @@ bool process_node(ms_demangle::Node* node, restorer::Container* root, const std:
       auto& enumeration = container->enumerations[str];
       enumeration.name = str;
 #ifdef LLVM_RealEnumType_DEFINED
-      enumeration.type = to_text(n->RealEnumType);
+      enumeration.type = toString(n->RealEnumType);
 #endif
       enumeration.parent = container;
     }
@@ -234,7 +239,7 @@ bool process_node(ms_demangle::Node* node, restorer::Container* root, const std:
       symbol = &container->functionsVirtual[name];
       if (container->type == restorer::Container::tUnknown)
       {
-        container->type = restorer::Container::tOOP;
+        container->type = restorer::Container::tNonUnionClass;
       }
       container->functionsVirtualMap[mod][rva].push_back(symbol);
 
@@ -248,7 +253,7 @@ bool process_node(ms_demangle::Node* node, restorer::Container* root, const std:
       symbol = &container->functionsStatic[name];
       if (container->type == restorer::Container::tUnknown)
       {
-        container->type = restorer::Container::tOOP;
+        container->type = restorer::Container::tNonUnionClass;
       }
     }
     else
@@ -256,7 +261,7 @@ bool process_node(ms_demangle::Node* node, restorer::Container* root, const std:
       symbol = &container->functions[name];
       if (container->type == restorer::Container::tUnknown)
       {
-        container->type = restorer::Container::tOOP;
+        container->type = restorer::Container::tNonUnionClass;
       }
     }
 
@@ -354,7 +359,7 @@ restorer::Container* get_container(restorer::Container* root, const ms_demangle:
       deeper.name = name;
       if (deeper.type == restorer::Container::tUnknown)
       {
-        deeper.type = restorer::Container::tOOP;
+        deeper.type = restorer::Container::tNonUnionClass;
       }
 
       auto& instance = deeper.instances[args];
@@ -375,6 +380,7 @@ restorer::Container* get_container(restorer::Container* root, const ms_demangle:
   return container;
 }
 
+// Finds or creates a container for class based on the full qualified name.
 restorer::Container* get_class(restorer::Container* root, StringView name)
 {
   llvm::ms_demangle::Demangler dem;
@@ -393,22 +399,25 @@ bool restorer::Enum::output_definition(std::ofstream& out, size_t indent) const
 {
   out << ind(indent) << "enum " << name << " : " << type << " {" << std::endl;
   const std::string inc = "\"" + get_name("__") + ".inl" + "\"";
-#ifdef RESTORER_INSERT_INCLUDES
-  out << "#if __has_include(" << inc << ")" << std::endl;
-  out << "#include " << inc << std::endl;
-  out << "#endif" << std::endl;
-#endif
+
+  if (gInsertIncludeInside)
+  {
+    out << "#if __has_include(" << inc << ")" << std::endl;
+    out << "#include " << inc << std::endl;
+    out << "#endif" << std::endl;
+  }
+
   out << ind(indent) << "};";
   return true;
 }
 
 bool restorer::Symbol::output_definition(std::ofstream& out, size_t indent) const
 {
-  auto qulifications = parent->get_name() + "::";
+  const auto qualifications = parent->get_name() + "::";
   std::string output = name;
-  eraseAllSubStr(output, qulifications);
+  eraseAllSubStr(output, qualifications);
 
-  // TODO: stl/atl/mfc regexp ?
+  // TODO: Add stl/atl/mfc regexp here?
 
   out << ind(indent) << output;
   return true;
@@ -451,10 +460,11 @@ std::string restorer::Node::get_name(const char* delim) const
 
 const char* restorer::Container::get_type_str() const
 {
-  switch (type) {
+  switch (type)
+  {
   case tUnknown: return "namespace/*or class/struct?*/";
   case tNamespace: return "namespace";
-  case tOOP: return "class/*or struct?*/"; // More common
+  case tNonUnionClass: return gDefaultNonUnionClassType;
   case tClass: return "class";
   case tStruct: return "struct";
   case tUnion: return "union";
@@ -463,48 +473,55 @@ const char* restorer::Container::get_type_str() const
   return "";
 }
 
-bool restorer::Container::is_class_or_struct() const
+bool restorer::Container::is_non_union_class() const
 {
-  return type == tClass || type == tStruct || type == tOOP;
+  return type == tClass || type == tStruct || type == tNonUnionClass;
 }
 
-void restorer::Container::force_oop()
+void restorer::Container::force_non_union_class()
 {
-  if (is_class_or_struct())
+  if (is_non_union_class())
     return;
-  type = tOOP;
+
+  type = tNonUnionClass;
 
   for (auto& child : children)
   {
-    child.second.force_oop();
+    child.second.force_non_union_class();
   }
 }
 
 bool restorer::Container::process_step_0(Container& root)
 {
+  // Lock for recursion
   if (processed[0])
-  {
     return true;
-  }
-
   processed[0] = true; // TODO: Temp bugfix?
 
+  // Bases
   for (auto& base : hierarchy.bases)
+  {
     base.ptr->process_step_0(root);
+  }
 
+  // Template instances
   for (auto& instance : instances)
   {
     instance.second.process_step_0(root);
-    if (instance.second.type != tUnknown && (type == tUnknown || type == tOOP))
+    if (instance.second.type != tUnknown && (type == tUnknown || type == tNonUnionClass))
     {
       type = instance.second.type;
     }
   }
 
+  // Children
   for (auto& child : children)
+  {
     child.second.process_step_0(root);
+  }
 
   // TODO: Yes, looks like performance beast
+  // Virtual functions tables
   for (auto& offset : vftables)
   {
     for (auto& vftable : offset.second)
@@ -570,16 +587,16 @@ bool restorer::Container::process_step_0(Container& root)
 
 bool restorer::Container::process_step_1(Container& root)
 {
+  // Lock for recursion
   if (processed[1])
-  {
     return true;
-  }
-
   processed[1] = true; // TODO: Temp bugfix?
 
+  // Template instances
   for (auto& instance : instances)
     instance.second.process_step_1(root);
 
+  // Children
   for (auto& child : children)
     child.second.process_step_1(root);
 
@@ -588,6 +605,7 @@ bool restorer::Container::process_step_1(Container& root)
     return true;
   }
 
+  // Virtual functions tables
   for (auto& offset : vftables)
   {
     auto& vftable0 = offset.second[nullptr];
@@ -623,16 +641,16 @@ bool restorer::Container::process_step_1(Container& root)
 
 bool restorer::Container::process_step_2(Container& root)
 {
+  // Lock for recursion
   if (processed[2])
-  {
     return true;
-  }
-
   processed[2] = true; // TODO: Temp bugfix?
 
+  // Template instances
   for (auto& instance : instances)
     instance.second.process_step_2(root);
 
+  // Children
   for (auto& child : children)
     child.second.process_step_2(root);
 
@@ -641,6 +659,7 @@ bool restorer::Container::process_step_2(Container& root)
     return true;
   }
 
+  // Virtual function tables
   for (auto& offset : vftables)
   {
     auto& vftable0 = offset.second[nullptr];
@@ -669,19 +688,20 @@ bool restorer::Container::process_step_2(Container& root)
 
 bool restorer::Container::process_step_3(Container& root)
 {
+  // Lock for recursion
   if (processed[3])
-  {
     return true;
-  }
-
   processed[3] = true; // TODO: Temp bugfix?
 
+  // Bases
   for (auto& base : hierarchy.bases)
     base.ptr->process_step_3(root);
 
+  // Template instances
   for (auto& instance : instances)
     instance.second.process_step_3(root);
 
+  // Children
   for (auto& child : children)
     child.second.process_step_3(root);
 
@@ -690,6 +710,7 @@ bool restorer::Container::process_step_3(Container& root)
     return true;
   }
 
+  // Virtual functions tables
   for (auto& offset : vftables)
   {
     auto& vftable0 = offset.second[nullptr];
@@ -750,7 +771,7 @@ bool restorer::Container::process_step_3(Container& root)
 
 bool restorer::Container::output_definition(std::ofstream& out, size_t indent) const
 {
-  bool instance = false;
+  bool bInstance = false;
   if (!instances.empty() && templateParamsCount > 0)
   {
     out << ind(indent) << "template<";
@@ -764,7 +785,7 @@ bool restorer::Container::output_definition(std::ofstream& out, size_t indent) c
   }
   else if (name.find('<') != std::string::npos)
   {
-    instance = true;
+    bInstance = true;
     out << "#if 0" << std::endl;
     out << ind(indent) << "template<>" << std::endl;
   }
@@ -781,7 +802,7 @@ bool restorer::Container::output_definition(std::ofstream& out, size_t indent) c
 
   out << ind(indent++) << "{" << std::endl; // Open container
   {
-    if (is_class_or_struct() && (!enumerations.empty() || !children.empty()))
+    if (is_non_union_class() && (!enumerations.empty() || !children.empty()))
     { // Force publicity for next things
       out << ind(indent - 1) << "public:" << std::endl;
     }
@@ -906,6 +927,7 @@ bool restorer::Container::output_definition(std::ofstream& out, size_t indent) c
 
     if (!vftables.empty())
     {
+      // TODO: Move it from output_definition to process step.
       for (const auto& vftable : vftables)
       {
         // Get base vftable size
@@ -1093,23 +1115,24 @@ bool restorer::Container::output_definition(std::ofstream& out, size_t indent) c
 
 
 
-    if (is_class_or_struct())
+    if (is_non_union_class())
     { // Force publicity for next things
       out << ind(indent - 1) << "public:" << std::endl;
     }
-#ifdef RESTORER_INSERT_INCLUDES
-    std::string inc = "\"" + get_name("__") + ".inl" + "\"";
-    out << "#if __has_include(" << inc << ")" << std::endl;
-    out << "// Optional file with data fields and other stuff" << std::endl;
-    out << "#include " << inc << "" << std::endl;
-    out << "#endif" << std::endl;
-#endif
+    if (gInsertIncludeInside)
+    {
+      std::string inc = "\"" + get_name("__") + ".inl" + "\"";
+      out << "#if __has_include(" << inc << ")" << std::endl;
+      out << "// Optional file with data fields and other stuff" << std::endl;
+      out << "#include " << inc << "" << std::endl;
+      out << "#endif" << std::endl;
+    }
   }
   out << ind(--indent) << "};" << std::endl; // Close container
 
   if (!instances.empty())
   {
-    // TODO: Check
+    // TODO: Investigate how to do it better
     out << "#if 0 // Instances:" << std::endl;
     for (const auto& instance : instances)
     {
@@ -1120,7 +1143,7 @@ bool restorer::Container::output_definition(std::ofstream& out, size_t indent) c
     out << std::endl;
   }
 
-  if (instance)
+  if (bInstance)
   {
     out << "#endif" << std::endl;
   }
@@ -1132,6 +1155,7 @@ bool restorer::SymbolsTree::add_symbol(Module* mod, const std::string& name, uin
 {
   if (name[0] != '?') // C name?
   {
+    // TODO: Investigate
     restorer::Container* container = &root;
     auto& symbol = container->others[name];
     symbol.name = name;
@@ -1232,8 +1256,8 @@ bool restorer::SymbolsTree::parse_COFF_pdb(Module* mod)
     {
       switch (Symbol->getSymTag())
       {
-      //case pdb::PDB_SymType::None: break;
-      //case pdb::PDB_SymType::Exe: break;
+        //case pdb::PDB_SymType::None: break;
+        //case pdb::PDB_SymType::Exe: break;
       case pdb::PDB_SymType::Compiland:
       {
         std::unique_ptr<pdb::PDBSymbolCompiland> C =
@@ -1307,7 +1331,8 @@ bool restorer::SymbolsTree::parse_COFF_exports(Module* mod)
 {
   const auto coff = dyn_cast<llvm::object::COFFObjectFile>(mod->object);
 
-  for (const llvm::object::ExportDirectoryEntryRef& E : coff->export_directories()) {
+  for (const auto& E : coff->export_directories())
+  {
     StringRef Name;
     uint32_t Ordinal, RVA;
     if (auto EC = E.getSymbolName(Name))
@@ -1324,13 +1349,19 @@ bool restorer::SymbolsTree::parse_COFF_exports(Module* mod)
   return false;
 }
 
-void parse_imported_symbols(restorer::SymbolsTree& tree, restorer::Module* mod, iterator_range<object::imported_symbol_iterator> Range, uint32_t beginRVA) {
+void parse_imported_symbols(
+  restorer::SymbolsTree& tree,
+  restorer::Module* mod,
+  iterator_range<object::imported_symbol_iterator> Range,
+  uint32_t beginRVA)
+{
   const auto coff = dyn_cast<llvm::object::COFFObjectFile>(mod->object);
   const auto BytesInAddress = coff->getBytesInAddress();
 
   size_t Index = 0;
 
-  for (const object::ImportedSymbolRef& I : Range) {
+  for (const auto& I : Range)
+  {
     StringRef Name;
     uint16_t Ordinal;
     if (Error E = I.getSymbolName(Name))
@@ -1348,12 +1379,18 @@ void parse_imported_symbols(restorer::SymbolsTree& tree, restorer::Module* mod, 
   }
 }
 
-void parse_delay_imported_symbols(restorer::SymbolsTree& tree, restorer::Module* mod, const llvm::object::DelayImportDirectoryEntryRef& I, iterator_range<object::imported_symbol_iterator> Range) {
+void parse_delay_imported_symbols(
+  restorer::SymbolsTree& tree,
+  restorer::Module* mod,
+  const llvm::object::DelayImportDirectoryEntryRef& I,
+  iterator_range<object::imported_symbol_iterator> Range)
+{
   const auto coff = dyn_cast<llvm::object::COFFObjectFile>(mod->object);
   const auto base = coff->getImageBase();
 
   int Index = 0;
-  for (const object::ImportedSymbolRef& S : Range) {
+  for (const auto& S : Range)
+  {
     StringRef Name;
     uint16_t Ordinal;
     uint64_t Addr;
@@ -1364,7 +1401,7 @@ void parse_delay_imported_symbols(restorer::SymbolsTree& tree, restorer::Module*
     if (Error E = I.getImportAddress(Index++, Addr))
       continue;
 
-    auto RVA = Addr - base;
+    const auto RVA = static_cast<uint32_t>(Addr - base);
 
     std::string mangled(Name.begin(), Name.end());
     tree.add_symbol(mod, mangled, RVA, false);
@@ -1440,7 +1477,7 @@ bool restorer::SymbolsTree::parse_COFF_vftables(Module* mod)
    * TODO: Implement robust detection.
    */
 
-   // Find all CompleteObjectLocator structures
+  // Find all CompleteObjectLocator structures
   std::set<const ms_rtti::_64::CompleteObjectLocator*> locators;
   auto i = data.bytes_begin();
   auto e = data.bytes_end() - sizeof(ms_rtti::_64::CompleteObjectLocator);
@@ -1468,7 +1505,7 @@ bool restorer::SymbolsTree::parse_COFF_vftables(Module* mod)
       continue;
 
     // Now we know type: struct or class
-    container->force_oop();
+    container->force_non_union_class();
 
     // Insert to collection
     locators.insert(COL);
@@ -1507,7 +1544,7 @@ bool restorer::SymbolsTree::parse_COFF_vftables(Module* mod)
         bases[j]->where.vdisp,
       };
       base->hierarchy.successors.insert(container);
-      base->force_oop();
+      base->force_non_union_class();
 
       base->hierarchy.bases.resize(bases[j]->numContainedBases);
       for (size_t k = 0; k < bases[j]->numContainedBases; ++k)
@@ -1662,12 +1699,13 @@ bool restorer::SymbolsTree::parse_COFF_vftables(Module* mod)
 #endif
 bool restorer::SymbolsTree::collect()
 {
-  for (const auto & input : inputs)
+  for (const auto& input : inputs)
   {
     std::cout << std::endl;
 
     if (!input.pdb.empty())
     {
+      // TODO: Use this option
     }
 
     if (!input.object.empty())
@@ -1760,15 +1798,15 @@ bool restorer::SymbolsTree::output_to_folder(const std::filesystem::path& path)
     out << "/* Autogenerated header */" << std::endl;
     out << "#pragma once" << std::endl << std::endl;
 
-#ifdef RESTORER_INSERT_INCLUDES
-    //const std::string inc = "\"const/" + container.second.get_name("__") + ".inc" + "\"";
-    const std::string inc = "\"" + container.second.get_name("__") + ".inc" + "\"";
-    out << "#if __has_include(" << inc << ")" << std::endl;
-    out << "// Optional file with additional includes" << std::endl;
-    out << "#include " << inc << std::endl;
-    out << "#endif" << std::endl;
-    out << std::endl;
-#endif
+    if (gInsertIncludeBefore)
+    {
+      const std::string inc = "\"" + container.second.get_name("__") + ".inc" + "\"";
+      out << "#if __has_include(" << inc << ")" << std::endl;
+      out << "// Optional file with additional includes" << std::endl;
+      out << "#include " << inc << std::endl;
+      out << "#endif" << std::endl;
+      out << std::endl;
+    }
 
     container.second.output_definition(out);
     out.close();

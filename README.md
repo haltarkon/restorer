@@ -50,11 +50,14 @@ The collected information is displayed in C++ header files, which can even be in
 
 ## Inspiration and ideas
 
-Thanks for [GrandpaGameHacker](https://github.com/GrandpaGameHacker):
+Thanks for idea to [GrandpaGameHacker](https://github.com/GrandpaGameHacker):
 + [ClassDumper](https://github.com/GrandpaGameHacker/ClassDumper)
 + [ClassDumper2](https://github.com/GrandpaGameHacker/ClassDumper2)
 
-LLVM utils:
+LLVM:
++ [LLVM](https://github.com/llvm/llvm-project)
 + [llvm-pdbutil](https://llvm.org/docs/CommandGuide/llvm-pdbutil.html)
 + [llvm-readobj](https://llvm.org/docs/CommandGuide/llvm-readobj.html)
 + [llvm-objdump](https://llvm.org/docs/CommandGuide/llvm-objdump.html)
+
++ [Pharos Visual C++ Demangler](https://github.com/cmu-sei/pharos-demangle) - Another good library for demangling MSVC symbols that used before I found everything needed in [LLVM](https://github.com/llvm/llvm-project).
