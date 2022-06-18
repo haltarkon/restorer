@@ -982,7 +982,7 @@ bool restorer::Container::output_definition(std::ofstream& out, size_t indent) c
             << "// Warning: Greater base vftable size!"
             << std::endl;
 
-          std::cout << "Warning: " << get_name() << " offset " << vftable.first << " has short vftable." << std::endl;
+          std::cerr << "Warning: " << get_name() << " offset " << vftable.first << " has short vftable." << std::endl;
         }
 
         out << ind(indent)
@@ -1242,7 +1242,7 @@ bool restorer::SymbolsTree::parse_object(Module* mod)
         std::string s = PDBFromServer.string();
         StringRef rerPDBFromServer(s.c_str(), s.size());
         Error E = llvm::pdb::loadDataForPDB(reader, rerPDBFromServer, mod->session);
-        std::cout << "Pdb: " << PDBFromServer << std::endl;
+        std::clog << "Pdb: " << PDBFromServer << std::endl;
       }
     }
 
@@ -1646,7 +1646,7 @@ bool restorer::SymbolsTree::parse_COFF_vftables(Module* mod)
     }
 
     const auto vfcount = (vfend - i) / BytesInAddress - 1;
-    //std::cout << (const char*)TD.name << " " << vfcount << std::endl;
+    //std::clog << (const char*)TD.name << " " << vfcount << std::endl;
 
     if (vfcount == 0) // Invalid vftable found?
       continue;
@@ -1722,7 +1722,7 @@ bool restorer::SymbolsTree::collect()
 {
   for (const auto& input : inputs)
   {
-    std::cout << std::endl;
+    std::clog << std::endl;
 
     if (!input.pdb.empty())
     {
@@ -1731,7 +1731,7 @@ bool restorer::SymbolsTree::collect()
 
     if (!input.object.empty())
     {
-      std::cout << "Module: " << input.object << std::endl;
+      std::clog << "Module: " << input.object << std::endl;
       // Attempt to open the binary.
       StringRef File(input.object);
       Expected<llvm::object::OwningBinary<llvm::object::Binary>> BinaryOrErr = llvm::object::createBinary(File);
