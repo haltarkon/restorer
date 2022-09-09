@@ -67,4 +67,5 @@ LLVM:
 + [llvm-readobj](https://llvm.org/docs/CommandGuide/llvm-readobj.html)
 + [llvm-objdump](https://llvm.org/docs/CommandGuide/llvm-objdump.html)
 
+cmu-sei:
 + [Pharos Visual C++ Demangler](https://github.com/cmu-sei/pharos-demangle) - Another good library for demangling MSVC symbols that used before I found everything needed in [LLVM](https://github.com/llvm/llvm-project).
