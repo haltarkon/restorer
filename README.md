@@ -36,7 +36,7 @@ You can find here example folder with [example.h header file](example/example.h)
 + It is possible to restore the inheritance hierarchy if the library you are using uses [Microsoft Visual C++ RTTI](http://www.openrce.org/articles/full_view/23). 
 + [PDB files](https://github.com/microsoft/microsoft-pdb) can be used to obtain additional information that will increase the amount of information recovered.
 
-We can represent the nesting of classes and namespaces in the form of a tree for each of the modules (exe/dll). Combined trees of all modules are combined gives us a more complete picture, but this requires no collisions.
+We can represent the nesting of classes and namespaces in the form of a tree for each of the modules (exe/dll). Combined tree of all modules gives us a more complete picture, but this requires no collisions.
 The collected information is displayed in C++ header files, which can even be included in other C++ projects. Unfortunately, RTTI does not keep a list of class fields, so the task is much more complicated. At this point, the class fields need to be restored manually.
 
 Another useful feature of this application is that it tries to restore virtual function tables while maintaining the original order of functions. If you are lucky and enough information is collected, you can get a class/struct definition that can be used to call virtual functions when developing plugins (get pointer in run-time and cast to restored type).
